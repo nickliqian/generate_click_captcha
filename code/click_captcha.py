@@ -8,7 +8,7 @@ import time
 
 
 class ClickCaptcha(object):
-    def __init__(self):
+    def __init__(self, word_list_file_path):
         # 图片设置
         self.width = 320  # 宽度
         self.height = 160  # 高度
@@ -16,7 +16,7 @@ class ClickCaptcha(object):
         self.no_steps = self.height  # 渐变迭代次数
 
         # 文字设置
-        self.add_text = True
+        self.enable_add_text = True
         self.word_count_min = 3
         self.word_count_max = 5
         self.word_size = 32  # 字体大小
@@ -29,18 +29,19 @@ class ClickCaptcha(object):
         self.font_path = "C:/windows/fonts/simkai.ttf"  # 字体路径
         self.set_font = ImageFont.truetype(self.font_path, self.word_size)  # 设置字体
         self.word_list = list()  # 字符集：字符集从文件中读取的时候必须是数组形式
-        with open("../data/chinese_word.json", "r", encoding="utf-8") as f:
+        self.word_list_file_path = word_list_file_path
+        with open(self.word_list_file_path, "r", encoding="utf-8") as f:
             self.word_list = json.load(f)
 
         # 干扰线
-        self.interference_line = False
+        self.enable_interference_line = False
         self.inter_line_min = 10
         self.inter_line_max = 16
         self.interference_line_width = 3
         self.interference_line_radius = (-40, 40)
 
         # 虚构文字
-        self.dummy_word = True
+        self.enable_dummy_word = False
         self.dummy_word_width = 2  # 虚构文字的线宽度
         self.dummy_word_count_min = 3
         self.dummy_word_count_max = 5
@@ -49,16 +50,16 @@ class ClickCaptcha(object):
         self.dummy_word_color = (0, 0, 0)
 
         # 图片保存路径
-        self.save_status = True
+        self.enable_save_status = True
         self.image_postfix = "jpg"
         self.label_postfix = "txt"
         self.save_img_dir = "../image245/img"
         self.save_label_dir = "../image245/label"
         # 判断文件夹是否存在
         if not os.path.exists(self.save_img_dir):
-            os.mkdir(self.save_img_dir)
+            os.makedirs(self.save_img_dir)
         if not os.path.exists(self.save_label_dir):
-            os.mkdir(self.save_label_dir)
+            os.makedirs(self.save_label_dir)
 
         # 内部参数
         self.word_point_list = None
@@ -239,7 +240,7 @@ class ClickCaptcha(object):
                 else:  # this is 6 type
                     self.draw.line([c, d], self.dummy_word_color, width=self.dummy_word_width)
 
-    def save_images(self, order_num):
+    def batch_save(self, order_num):
         """
         保存图片和标签
         :param order_num:
@@ -258,7 +259,7 @@ class ClickCaptcha(object):
             content = json.dumps(self.label_string, ensure_ascii=False)
             f.write(content)
 
-    def create_image_with_config(self, order_num):
+    def create_image(self, order_num=0):
         """
         根据配置生成一张图片
         :param order_num:序号
@@ -273,21 +274,17 @@ class ClickCaptcha(object):
         self.word_count = random.randint(self.word_count_min, self.word_count_max)
 
         # 添加文字
-        if self.add_text:
+        if self.enable_add_text:
             captcha_info = self.add_text_to_images()
             self.label_string = captcha_info
 
         # 创建干扰线
-        if self.interference_line:
+        if self.enable_interference_line:
             self.add_interference_line()
 
         # 创建干扰虚构文字
-        if self.dummy_word:
+        if self.enable_dummy_word:
             self.add_dummy_word()
-
-        # 保存图片
-        if self.save_status:
-            self.save_images(order_num)
 
     def generate_click_captcha(self, count=5):
         """
@@ -295,17 +292,40 @@ class ClickCaptcha(object):
         :param count:
         :return:
         """
-        self.save_status = True
+        self.enable_save_status = True
         for i in range(count):
-            self.create_image_with_config(i)
+            self.create_image()
+            # 保存图片
+            if self.enable_save_status:
+                self.batch_save(i)
 
-    def show_exp(self):
-        pass
+    def show(self):
+        self.img.show()
+
+    def save(self, path="./test.jpg"):
+        self.img.save(path)
 
 
 def main():
+    # 创建对象
     c = ClickCaptcha()
-    c.generate_click_captcha()
+
+    # 配置开关
+    c.enable_add_text = True
+    c.enable_interference_line = True
+    c.enable_dummy_word = True
+
+    # 创建图形
+    c.create_image()
+
+    # 展示和保存
+    # c.show()
+    c.save("./test.jpg")
+
+    # 批量保存
+    c.save_img_dir = "../image245/img"
+    c.save_label_dir = "../image245/label"
+    c.generate_click_captcha(10)
 
 
 if __name__ == '__main__':

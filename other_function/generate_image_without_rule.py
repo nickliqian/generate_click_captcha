@@ -9,8 +9,8 @@ w, h = img.size
 
 for i in range(h):
     for j in range(w):
-        a = random.randint(50, 100)
-        b = random.randint(100, 150)
-        c = random.randint(150, 200)
+        a = random.randint(10, 230)
+        b = random.randint(10, 230)
+        c = random.randint(10, 230)
         img.putpixel((j, i), (a, b, c))
 img.show()
