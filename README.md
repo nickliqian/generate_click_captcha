@@ -4,10 +4,7 @@
 通过本程序批量生成图片后，同时可以生成标注的标签（json、xml）用于图像识别的训练，xml格式兼容yolo。  
 本项目可以用于人机验证，也可以用于验证码识别的研究。  
 
-![img4](readme_img/img4.jpg)  
-
-![img5](readme_img/img5.png)  
-
+![img4](readme_img/img4.jpg)!<img width="320" height="160" src="https://raw.githubusercontent.com/nickliqian/generate_click_captcha/master/readme_img/img5.png"/>
 
 ## 1. 例子
 创建点选中文验证码有两个必要条件，一是指定字体，二是自定常用字的列表。  
