@@ -5,10 +5,17 @@ import random
 import json
 import os
 import time
+from jinja2 import Template
+
+
+class ConfigError(Exception):
+    pass
 
 
 class ClickCaptcha(object):
-    def __init__(self, word_list_file_path):
+    def __init__(self, font_path=None, word_list_file_path=None):
+        # 根目录
+        self.basedir = os.path.dirname(os.path.realpath(__file__))
         # 图片设置
         self.width = 320  # 宽度
         self.height = 160  # 高度
@@ -25,13 +32,22 @@ class ClickCaptcha(object):
         self.width_right_offset = 40
         self.height_top_offset = 10
         self.height_bottom_offset = 40
+
         # 字体和字符集
-        self.font_path = "C:/windows/fonts/simkai.ttf"  # 字体路径
-        self.set_font = ImageFont.truetype(self.font_path, self.word_size)  # 设置字体
-        self.word_list = list()  # 字符集：字符集从文件中读取的时候必须是数组形式
+        self.font_path = font_path  # 字体路径
+        if self.font_path:
+            self.set_font = ImageFont.truetype(self.font_path, self.word_size)  # 设置字体
+        else:
+            raise ConfigError("请指定字体文件的绝对路径或者相对路径，例如：C:/windows/fonts/simkai.ttf")
+
+        # 字符集路径
         self.word_list_file_path = word_list_file_path
-        with open(self.word_list_file_path, "r", encoding="utf-8") as f:
-            self.word_list = json.load(f)
+        if self.word_list_file_path:
+            self.word_list = list()  # 字符集：字符集从文件中读取的时候必须是数组形式
+            with open(self.word_list_file_path, "r", encoding="utf-8") as f:
+                self.word_list = json.load(f)
+        else:
+            raise ConfigError("请指定文字字典文件的绝对路径或者相对路径，例如：data/chinese_word.json")
 
         # 干扰线
         self.enable_interference_line = False
@@ -52,14 +68,19 @@ class ClickCaptcha(object):
         # 图片保存路径
         self.enable_save_status = True
         self.image_postfix = "jpg"
-        self.label_postfix = "txt"
-        self.save_img_dir = "../image245/img"
-        self.save_label_dir = "../image245/label"
-        # 判断文件夹是否存在
-        if not os.path.exists(self.save_img_dir):
-            os.makedirs(self.save_img_dir)
-        if not os.path.exists(self.save_label_dir):
-            os.makedirs(self.save_label_dir)
+        self.save_img_dir = os.path.join(self.basedir, "image245/img")
+        self.save_label_dir = os.path.join(self.basedir, "image245/label")
+
+        # 文件配置
+        self.label_type = "xml"
+        if self.label_type == "json":
+            self.json_pretty = True
+            if self.json_pretty:
+                self.indent = 4
+            else:
+                self.indent = None
+        elif self.label_type == "xml":
+            self.template_path = "code/exp.xml"
 
         # 内部参数
         self.word_point_list = None
@@ -68,6 +89,9 @@ class ClickCaptcha(object):
         self.word_count = None
         self.gradient = None
         self.label_string = None
+
+    def get_random_word(self):
+        return random.choice(self.word_list)
 
     @staticmethod
     def gen_random_color():
@@ -117,7 +141,6 @@ class ClickCaptcha(object):
     def init_gradient_image_draw(self):
         """
         生成一张渐变色背景的图片
-        :param gradient:
         :return:
         """
         self.img = Image.new(self.mode, (self.width, self.height), (0, 0, 0))
@@ -175,7 +198,7 @@ class ClickCaptcha(object):
             self.word_point_list.append([location_x, location_y])
 
             # 随机选择文字并绘制
-            word = random.choice(self.word_list)
+            word = self.get_random_word()
             print("Put word {} success!".format(word))
             self.draw.text((location_x, location_y), word, font=self.set_font, fill=(0, 0, 0))
             info = {"x": location_x,
@@ -253,11 +276,35 @@ class ClickCaptcha(object):
         self.img.save(img_path)
 
         # 标签
-        label_file = "{}_{}.{}".format(order_num, tc, self.label_postfix)
+        label_file = "{}_{}.{}".format(order_num, tc, self.label_type)
         label_path = os.path.join(self.save_label_dir, label_file)
-        with open(label_path, "w") as f:
-            content = json.dumps(self.label_string, ensure_ascii=False)
-            f.write(content)
+        if self.label_type == "json":
+            with open(label_path, "w") as f:
+                content = json.dumps(self.label_string, ensure_ascii=False, indent=4)
+                f.write(content)
+        elif self.label_type == "xml":
+            self.render_xml_template(img_file, img_path, label_path)
+
+    def render_xml_template(self, img_file, img_path, save_path):
+        xml_data = dict()
+        xml_data["words"] = list()
+        xml_data["img_path"] = os.path.join(self.basedir, img_path)
+        xml_data["img_name"] = img_file
+        xml_data["folder_name"] = self.save_label_dir.split("/")[-1]
+        for w in self.label_string["word"]:
+            item = dict()
+            item["xmin"] = w["x"]
+            item["xmax"] = w["x"] + self.word_size
+            item["ymin"] = w["y"]
+            item["ymax"] = w["y"] + self.word_size
+            xml_data["words"].append(item)
+
+        with open(self.template_path) as f:
+            before_data = f.read()
+            t = Template(before_data)
+        with open(save_path, 'w') as f:
+            after_data = t.render(xml_data)
+            f.write(after_data)
 
     def create_image(self, order_num=0):
         """
@@ -286,13 +333,24 @@ class ClickCaptcha(object):
         if self.enable_dummy_word:
             self.add_dummy_word()
 
-    def generate_click_captcha(self, count=5):
+    def create_image_by_batch(self, count=5):
         """
         生成指定数量的图片
         :param count:
         :return:
         """
+        if self.label_type in ("xml", "json"):
+            pass
+        else:
+            raise ConfigError("标签文件的格式只能为xml或者json")
+
         self.enable_save_status = True
+        # 判断文件夹是否存在
+        if not os.path.exists(self.save_img_dir):
+            os.makedirs(self.save_img_dir)
+        if not os.path.exists(self.save_label_dir):
+            os.makedirs(self.save_label_dir)
+
         for i in range(count):
             self.create_image()
             # 保存图片
@@ -300,35 +358,22 @@ class ClickCaptcha(object):
                 self.batch_save(i)
 
     def show(self):
+        """
+        展示图片
+        :return:
+        """
         self.img.show()
+        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        print("captcha info: {}".format(self.label_string))
+        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
 
-    def save(self, path="./test.jpg"):
+    def save(self, path="test.jpg"):
+        """
+        保存图片
+        :param path:
+        :return:
+        """
         self.img.save(path)
-
-
-def main():
-    # 创建对象
-    c = ClickCaptcha()
-
-    # 配置开关
-    c.enable_add_text = True
-    c.enable_interference_line = True
-    c.enable_dummy_word = True
-
-    # 创建图形
-    c.create_image()
-
-    # 展示和保存
-    # c.show()
-    c.save("./test.jpg")
-
-    # 批量保存
-    c.save_img_dir = "../image245/img"
-    c.save_label_dir = "../image245/label"
-    c.generate_click_captcha(10)
-
-
-if __name__ == '__main__':
-    main()
-
-
+        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        print("captcha info: {}".format(self.label_string))
+        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")

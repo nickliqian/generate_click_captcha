@@ -36,7 +36,7 @@ class ImageChar(object):
         self.image = Image.new('RGB', size, bg_color)
 
     def rotate(self):
-        self.image.rotate(random.randint(0, 30), expand=0)
+        self.image.rotate(random.randint(0, 90), expand=0)
 
     def draw_text(self, pos, txt, fill):
         draw = ImageDraw.Draw(self.image)
@@ -64,12 +64,13 @@ class ImageChar(object):
         start = 0
         for i in range(0, num):
             char = RandomChar().tran_gb2312()
+            print(char)
             x = start + self.fontSize * i + random.randint(0, gap) + gap * i
             self.draw_text((x, random.randint(0, 15)), char, self.rand_rgb())
-            # self.rotate()
+            self.rotate()
         self.rand_line(5)
 
-    def save(self, path):
+    def save(self, path="test.jpg"):
         self.image.save(path)
 
     def show(self):
