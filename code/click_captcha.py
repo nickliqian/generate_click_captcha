@@ -279,7 +279,7 @@ class ClickCaptcha(object):
         label_file = "{}_{}.{}".format(order_num, tc, self.label_type)
         label_path = os.path.join(self.save_label_dir, label_file)
         if self.label_type == "json":
-            with open(label_path, "w") as f:
+            with open(label_path, "w", encoding="utf-8") as f:
                 content = json.dumps(self.label_string, ensure_ascii=False, indent=4)
                 f.write(content)
         elif self.label_type == "xml":
@@ -295,14 +295,14 @@ class ClickCaptcha(object):
             item = dict()
             item["xmin"] = w["x"]
             item["xmax"] = w["x"] + self.word_size
-            item["ymin"] = w["y"]
-            item["ymax"] = w["y"] + self.word_size
+            item["ymin"] = w["y"] + 6
+            item["ymax"] = w["y"] + self.word_size + 6
             xml_data["words"].append(item)
 
-        with open(self.template_path) as f:
+        with open(self.template_path, "r", encoding="utf-8") as f:
             before_data = f.read()
             t = Template(before_data)
-        with open(save_path, 'w') as f:
+        with open(save_path, 'w', encoding="utf-8") as f:
             after_data = t.render(xml_data)
             f.write(after_data)
 
@@ -352,7 +352,7 @@ class ClickCaptcha(object):
             os.makedirs(self.save_label_dir)
 
         for i in range(count):
-            self.create_image()
+            self.create_image(i)
             # 保存图片
             if self.enable_save_status:
                 self.batch_save(i)

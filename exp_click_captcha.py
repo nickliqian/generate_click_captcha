@@ -18,6 +18,9 @@ if __name__ == '__main__':
         c.show()
     # 批量保存
     if 1:
+        c.template_path = "code/exp.xml"
         c.save_img_dir = "image245/img"
         c.save_label_dir = "image245/label"
-        c.create_image_by_batch(10)
+        c.create_image_by_batch(5)
+
+
