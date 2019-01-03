@@ -6,6 +6,7 @@ import json
 import os
 import time
 from jinja2 import Template
+import platform
 
 
 class ConfigError(Exception):
@@ -32,6 +33,10 @@ class ClickCaptcha(object):
         self.width_right_offset = 40
         self.height_top_offset = 10
         self.height_bottom_offset = 40
+        if platform.system() == "Windows":
+            self.location_offset = 0
+        elif platform.system() == "Linux":
+            self.location_offset = 6
 
         # 字体和字符集
         self.font_path = font_path  # 字体路径
@@ -306,8 +311,8 @@ class ClickCaptcha(object):
                 item = dict()
                 item["xmin"] = w["x"]
                 item["xmax"] = w["x"] + self.word_size
-                item["ymin"] = w["y"] + 6
-                item["ymax"] = w["y"] + self.word_size + 6
+                item["ymin"] = w["y"] + self.location_offset
+                item["ymax"] = w["y"] + self.word_size + self.location_offset
                 xml_data["words"].append(item)
 
         if self.label_string.get("dummy", None):
@@ -315,8 +320,8 @@ class ClickCaptcha(object):
                 item = dict()
                 item["xmin"] = w["x"]
                 item["xmax"] = w["x"] + self.word_size
-                item["ymin"] = w["y"] + 6
-                item["ymax"] = w["y"] + self.word_size + 6
+                item["ymin"] = w["y"]
+                item["ymax"] = w["y"] + self.word_size
                 xml_data["dummy_words"].append(item)
 
         with open(self.template_path, "r", encoding="utf-8") as f:
