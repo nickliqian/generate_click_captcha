@@ -27,7 +27,6 @@ class ClickCaptcha(object):
         self.enable_add_text = True
         self.word_count_min = 3
         self.word_count_max = 5
-        self.word_size = 32  # 字体大小
         self.word_offset = 5  # 字符之间的最小距离
         self.width_left_offset = 10  # 字符距离边界的距离
         self.width_right_offset = 40
@@ -39,6 +38,7 @@ class ClickCaptcha(object):
             self.location_offset = 6
 
         # 字体预留
+        self.word_size = None  # 字体大小
         self.font_path = None
         self.set_font = None
         self.word_list_file_path = None
@@ -85,16 +85,18 @@ class ClickCaptcha(object):
         self.gradient = None
         self.label_string = None
 
-    def font_settings(self, font_path=None, word_list_file_path=None):
-        # 字体和字符集
+    def font_settings(self, word_size=32, font_path=None, word_list_file_path=None):
+        self.word_size = word_size  # 字体大小
         self.font_path = font_path  # 字体路径
+        self.word_list_file_path = word_list_file_path  # 汉字映射
+
+        # 字体和字符集
         if self.font_path:
             self.set_font = ImageFont.truetype(self.font_path, self.word_size)  # 设置字体
         else:
             raise ConfigError("请指定字体文件的绝对路径或者相对路径，例如：C:/windows/fonts/simkai.ttf")
 
         # 字符集路径
-        self.word_list_file_path = word_list_file_path
         if self.word_list_file_path:
             self.word_list = list()  # 字符集：字符集从文件中读取的时候必须是数组形式
             with open(self.word_list_file_path, "r", encoding="utf-8") as f:

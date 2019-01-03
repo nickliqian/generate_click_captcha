@@ -5,7 +5,7 @@ from code.click_captcha import ClickCaptcha
 if __name__ == '__main__':
     # 创建对象
     c = ClickCaptcha()
-    c.font_settings(font_path="C:/windows/fonts/simkai.ttf", word_list_file_path="data/chinese_word.json")
+    c.font_settings(word_size=16, font_path="msyh.ttf", word_list_file_path="data/chinese_word.json")
     # 配置开关
     c.enable_add_text = True  # 添加文字
 
