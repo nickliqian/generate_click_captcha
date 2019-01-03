@@ -6,7 +6,6 @@ import json
 import os
 import time
 from jinja2 import Template
-import platform
 
 
 class ConfigError(Exception):
@@ -18,10 +17,10 @@ class ClickCaptcha(object):
         # 根目录
         self.basedir = os.path.dirname(os.path.realpath(__file__))
         # 图片设置
+        # self.no_steps = self.height  # 渐变迭代次数
         self.width = 320  # 宽度
         self.height = 160  # 高度
         self.mode = "RGB"  # 图片生成模式
-        self.no_steps = self.height  # 渐变迭代次数
 
         # 文字设置
         self.enable_add_text = True
@@ -32,17 +31,14 @@ class ClickCaptcha(object):
         self.width_right_offset = 40
         self.height_top_offset = 10
         self.height_bottom_offset = 40
-        if platform.system() == "Windows":
-            self.location_offset = 0
-        elif platform.system() == "Linux":
-            self.location_offset = 6
 
         # 字体预留
-        self.word_size = None  # 字体大小
+        self.word_size = 30  # 字体大小
         self.font_path = None
         self.set_font = None
         self.word_list_file_path = None
         self.word_list = None
+        self.location_offset = 0
 
         # 干扰线
         self.enable_interference_line = False
@@ -89,6 +85,7 @@ class ClickCaptcha(object):
         self.word_size = word_size  # 字体大小
         self.font_path = font_path  # 字体路径
         self.word_list_file_path = word_list_file_path  # 汉字映射
+        self.location_offset = int(self.word_size // 6)
 
         # 字体和字符集
         if self.font_path:
@@ -149,8 +146,8 @@ class ClickCaptcha(object):
                           self.gen_random_color(), self.gen_random_color()]
 
         for i in range(len(list_of_colors) - 2):
-            for j in range(self.no_steps):
-                self.gradient.append(self.lerp_colour(list_of_colors[i], list_of_colors[i + 1], j / self.no_steps))
+            for j in range(self.height):
+                self.gradient.append(self.lerp_colour(list_of_colors[i], list_of_colors[i + 1], j / self.height))
 
     def init_gradient_image_draw(self):
         """
@@ -215,8 +212,11 @@ class ClickCaptcha(object):
             word = self.get_random_word()
             print("Put word {} success!".format(word))
             self.draw.text((location_x, location_y), word, font=self.set_font, fill=(0, 0, 0))
+            w, h = self.draw.textsize(word, self.set_font)
             info = {"x": location_x,
                     "y": location_y,
+                    "w": w,
+                    "h": h,
                     "value": word}
             captcha_info["word"].append(info)
         captcha_info["word_width"] = self.word_size
@@ -319,18 +319,18 @@ class ClickCaptcha(object):
             for w in self.label_string["word"]:
                 item = dict()
                 item["xmin"] = w["x"]
-                item["xmax"] = w["x"] + self.word_size
+                item["xmax"] = w["x"] + w["w"]
                 item["ymin"] = w["y"] + self.location_offset
-                item["ymax"] = w["y"] + self.word_size + self.location_offset
+                item["ymax"] = w["y"] + w["h"]
                 xml_data["words"].append(item)
 
         if self.label_string.get("dummy", None):
             for w in self.label_string["dummy"]:
                 item = dict()
-                item["xmin"] = w["x"]
-                item["xmax"] = w["x"] + self.word_size
-                item["ymin"] = w["y"]
-                item["ymax"] = w["y"] + self.word_size
+                item["xmin"] = w["x"] - self.dummy_word_width
+                item["xmax"] = w["x"] + self.word_size + self.dummy_word_width
+                item["ymin"] = w["y"] - self.dummy_word_width
+                item["ymax"] = w["y"] + self.word_size + self.dummy_word_width
                 xml_data["dummy_words"].append(item)
 
         with open(self.template_path, "r", encoding="utf-8") as f:
