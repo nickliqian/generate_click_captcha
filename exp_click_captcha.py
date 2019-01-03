@@ -4,11 +4,10 @@ from code.click_captcha import ClickCaptcha
 
 if __name__ == '__main__':
     # 创建对象
-    c = ClickCaptcha(font_path="C:/windows/fonts/simkai.ttf", word_list_file_path="data/chinese_word.json")
-
+    c = ClickCaptcha()
+    c.font_settings(font_path="C:/windows/fonts/simkai.ttf", word_list_file_path="data/chinese_word.json")
     # 配置开关
     c.enable_add_text = True  # 添加文字
-
 
     # 模板路径
     c.template_path = "code/exp.xml"
@@ -32,6 +31,6 @@ if __name__ == '__main__':
     if a == 3:
         c.enable_interference_line = False  # 添加干扰线
         c.enable_dummy_word = True  # 添加虚构文字对象
-        c.create_image_by_batch(5)
+        c.create_image_by_batch(20)
 
 

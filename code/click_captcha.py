@@ -14,7 +14,7 @@ class ConfigError(Exception):
 
 
 class ClickCaptcha(object):
-    def __init__(self, font_path=None, word_list_file_path=None):
+    def __init__(self):
         # 根目录
         self.basedir = os.path.dirname(os.path.realpath(__file__))
         # 图片设置
@@ -38,21 +38,11 @@ class ClickCaptcha(object):
         elif platform.system() == "Linux":
             self.location_offset = 6
 
-        # 字体和字符集
-        self.font_path = font_path  # 字体路径
-        if self.font_path:
-            self.set_font = ImageFont.truetype(self.font_path, self.word_size)  # 设置字体
-        else:
-            raise ConfigError("请指定字体文件的绝对路径或者相对路径，例如：C:/windows/fonts/simkai.ttf")
-
-        # 字符集路径
-        self.word_list_file_path = word_list_file_path
-        if self.word_list_file_path:
-            self.word_list = list()  # 字符集：字符集从文件中读取的时候必须是数组形式
-            with open(self.word_list_file_path, "r", encoding="utf-8") as f:
-                self.word_list = json.load(f)
-        else:
-            raise ConfigError("请指定文字字典文件的绝对路径或者相对路径，例如：data/chinese_word.json")
+        # 字体预留
+        self.font_path = None
+        self.set_font = None
+        self.word_list_file_path = None
+        self.word_list = None
 
         # 干扰线
         self.enable_interference_line = False
@@ -94,6 +84,23 @@ class ClickCaptcha(object):
         self.word_count = None
         self.gradient = None
         self.label_string = None
+
+    def font_settings(self, font_path=None, word_list_file_path=None):
+        # 字体和字符集
+        self.font_path = font_path  # 字体路径
+        if self.font_path:
+            self.set_font = ImageFont.truetype(self.font_path, self.word_size)  # 设置字体
+        else:
+            raise ConfigError("请指定字体文件的绝对路径或者相对路径，例如：C:/windows/fonts/simkai.ttf")
+
+        # 字符集路径
+        self.word_list_file_path = word_list_file_path
+        if self.word_list_file_path:
+            self.word_list = list()  # 字符集：字符集从文件中读取的时候必须是数组形式
+            with open(self.word_list_file_path, "r", encoding="utf-8") as f:
+                self.word_list = json.load(f)
+        else:
+            raise ConfigError("请指定文字字典文件的绝对路径或者相对路径，例如：data/chinese_word.json")
 
     def get_random_word(self):
         return random.choice(self.word_list)
@@ -337,6 +344,8 @@ class ClickCaptcha(object):
         :param order_num:序号
         :return:
         """
+        if not self.set_font:
+            raise ConfigError("请先设置字体")
         print("\n--------------------- Generate picture <{}>  -----------------------: ".format(order_num))
         # 初始化绘画对象和所有对象的位置
         self.gradient = list()
@@ -365,6 +374,8 @@ class ClickCaptcha(object):
         :param count:
         :return:
         """
+        if not self.set_font:
+            raise ConfigError("请先设置字体")
         if self.label_type in ("xml", "json"):
             pass
         else:
@@ -388,6 +399,8 @@ class ClickCaptcha(object):
         展示图片
         :return:
         """
+        if not self.set_font:
+            raise ConfigError("请先设置字体")
         self.img.show()
         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
         print("captcha info: {}".format(self.label_string))
@@ -399,6 +412,8 @@ class ClickCaptcha(object):
         :param path:
         :return:
         """
+        if not self.set_font:
+            raise ConfigError("请先设置字体")
         self.img.save(path)
         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
         print("captcha info: {}".format(self.label_string))
