@@ -156,15 +156,15 @@ class ClickCaptcha(object):
         :param i_num:
         :return:
         """
-        print("=== <word index: {}> start generate random location (x, y)".format(i_num))
+        # print("=== <word index: {}> start generate random location (x, y)".format(i_num))
         while True:
-            print(">>> start judge <<<")
+            # print(">>> start judge <<<")
             judge = [False] * i_num
             normal = [True] * i_num
             location_x = random.randint(self.width_left_offset, self.width - self.width_right_offset)
             location_y = random.randint(self.height_top_offset, self.height - self.height_bottom_offset)
-            print("word_point_list: {}".format(self.word_point_list))
-            print("right now (x, y) -> ({}, {})".format(location_x, location_y))
+            # print("word_point_list: {}".format(self.word_point_list))
+            # print("right now (x, y) -> ({}, {})".format(location_x, location_y))
             for index, wp in enumerate(self.word_point_list):
                 x1, y1 = wp
                 if location_x > x1 + self.word_size + self.word_offset:
@@ -176,11 +176,11 @@ class ClickCaptcha(object):
                 elif location_y + self.word_size + self.word_offset < y1:
                     judge[index] = True
                 else:
-                    print("(x, y)->({}, {}) interference to word_point_list!".format(location_x, location_y))
+                    # print("(x, y)->({}, {}) interference to word_point_list!".format(location_x, location_y))
                     continue
 
             if judge == normal:
-                print("(x, y) -> ({}, {}) -> pass".format(location_x, location_y))
+                # print("(x, y) -> ({}, {}) -> pass".format(location_x, location_y))
                 return location_x, location_y
 
     def add_text_to_images(self):
@@ -203,7 +203,7 @@ class ClickCaptcha(object):
             self.draw.text((location_x, location_y), word, font=self.set_font, fill=(0, 0, 0))
             info = {"x": location_x,
                     "y": location_y,
-                    "word": word}
+                    "value": word}
             captcha_info["word"].append(info)
         captcha_info["word_width"] = self.word_size
         return captcha_info
@@ -230,6 +230,8 @@ class ClickCaptcha(object):
         :return:
         """
         # 虚构文字数量
+        captcha_info = dict()
+        captcha_info["dummy"] = list()
         num_a = random.randint(self.dummy_word_count_min, self.dummy_word_count_max)
         for i in range(num_a):
             # 虚构文字笔画数
@@ -262,8 +264,14 @@ class ClickCaptcha(object):
                     self.draw.line([b, d], self.dummy_word_color, width=self.dummy_word_width)
                 else:  # this is 6 type
                     self.draw.line([c, d], self.dummy_word_color, width=self.dummy_word_width)
+            print("Put dummy word success!")
+            info = {"x": location_x,
+                    "y": location_y,
+                    "value": "dummy"}
+            captcha_info["dummy"].append(info)
+        return captcha_info
 
-    def batch_save(self, order_num):
+    def save_this_image(self, order_num):
         """
         保存图片和标签
         :param order_num:
@@ -288,16 +296,28 @@ class ClickCaptcha(object):
     def render_xml_template(self, img_file, img_path, save_path):
         xml_data = dict()
         xml_data["words"] = list()
+        xml_data["dummy_words"] = list()
         xml_data["img_path"] = os.path.join(self.basedir, img_path)
         xml_data["img_name"] = img_file
         xml_data["folder_name"] = self.save_label_dir.split("/")[-1]
-        for w in self.label_string["word"]:
-            item = dict()
-            item["xmin"] = w["x"]
-            item["xmax"] = w["x"] + self.word_size
-            item["ymin"] = w["y"] + 6
-            item["ymax"] = w["y"] + self.word_size + 6
-            xml_data["words"].append(item)
+
+        if self.label_string.get("word", None):
+            for w in self.label_string["word"]:
+                item = dict()
+                item["xmin"] = w["x"]
+                item["xmax"] = w["x"] + self.word_size
+                item["ymin"] = w["y"] + 6
+                item["ymax"] = w["y"] + self.word_size + 6
+                xml_data["words"].append(item)
+
+        if self.label_string.get("dummy", None):
+            for w in self.label_string["dummy"]:
+                item = dict()
+                item["xmin"] = w["x"]
+                item["xmax"] = w["x"] + self.word_size
+                item["ymin"] = w["y"] + 6
+                item["ymax"] = w["y"] + self.word_size + 6
+                xml_data["dummy_words"].append(item)
 
         with open(self.template_path, "r", encoding="utf-8") as f:
             before_data = f.read()
@@ -331,7 +351,8 @@ class ClickCaptcha(object):
 
         # 创建干扰虚构文字
         if self.enable_dummy_word:
-            self.add_dummy_word()
+            captcha_info = self.add_dummy_word()
+            self.label_string.update(captcha_info)
 
     def create_image_by_batch(self, count=5):
         """
@@ -355,7 +376,7 @@ class ClickCaptcha(object):
             self.create_image(i)
             # 保存图片
             if self.enable_save_status:
-                self.batch_save(i)
+                self.save_this_image(i)
 
     def show(self):
         """
